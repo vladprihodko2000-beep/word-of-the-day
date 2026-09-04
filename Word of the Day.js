@@ -38,9 +38,20 @@ function buildWidget(entry, errorMessage) {
     return widget;
   }
 
-  const wordText = widget.addText(entry.word);
+  const headerStack = widget.addStack();
+  headerStack.layoutHorizontally();
+  headerStack.centerAlignContent();
+
+  const wordText = headerStack.addText(entry.word);
   wordText.font = Font.boldSystemFont(22);
   wordText.textColor = Color.white();
+
+  if (entry.transcription) {
+    headerStack.addSpacer(6);
+    const transcriptionText = headerStack.addText(entry.transcription);
+    transcriptionText.font = Font.italicSystemFont(13);
+    transcriptionText.textColor = Color.gray();
+  }
 
   widget.addSpacer(2);
 
