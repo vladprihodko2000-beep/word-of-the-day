@@ -162,7 +162,42 @@ button{font:inherit;color:inherit}
 .inc li::before{content:"› ";color:var(--heat)}
 .inc li.none::before{content:"› ";color:var(--ok)}
 
+/* delegation + chill mode */
+.machine{position:relative}
+.credits{color:var(--dim)} .credits b{color:var(--heat);font-weight:500;letter-spacing:.12em}
+.deleg{margin-top:10px;width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;
+  background:var(--ink);color:var(--paper-2);border:0;border-radius:8px;padding:11px 12px;font-family:var(--f-mono);font-size:12.5px;cursor:pointer;text-align:left}
+.deleg:hover{background:#262A33}
+.deleg .k{font-size:11px;border:1px solid #3A3F4B;border-radius:4px;padding:0 6px;color:#9AA1B0}
+.deleg small{color:var(--heat);letter-spacing:.12em}
+.deleg[disabled]{opacity:.35;cursor:default}
+.deleg.picked{opacity:1;outline:2px solid var(--heat)}
+.hard{color:#B4232C;letter-spacing:.06em}
+.chill{position:absolute;inset:0;z-index:5;background:linear-gradient(180deg,#120E22,#0A0C11 75%);display:grid;
+  grid-template-rows:auto auto minmax(150px,1fr) auto auto;gap:14px;padding:18px;padding-right:max(18px,env(safe-area-inset-right,0px));animation:fadein .4s ease}
+@keyframes fadein{from{opacity:0}}
+.chill-title{font-family:var(--f-display);font-size:24px;font-weight:700;color:var(--phos);letter-spacing:-.01em}
+.chill-title small{display:block;font-family:var(--f-mono);font-size:11px;font-weight:400;color:var(--dim);margin-top:6px;letter-spacing:.04em}
+.titan{display:grid;gap:6px;font-size:11.5px;color:var(--dim)}
+.titan div{display:flex;justify-content:space-between;gap:12px}
+.titan i{display:block;height:4px;background:var(--vline);border-radius:2px;overflow:hidden}
+.titan i b{display:block;height:100%;width:0;background:var(--heat)}
+.field{position:relative;overflow:hidden;border:1px dashed var(--vline);border-radius:10px}
+.field .hint{position:absolute;left:12px;top:10px;font-size:10px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+.wave{position:absolute;left:0;right:0;bottom:0;height:56px;display:flex;align-items:flex-end;gap:3px;padding:0 10px;opacity:.3;pointer-events:none}
+.wave i{flex:1;background:var(--signal);border-radius:2px 2px 0 0;height:20%;animation:wave 2.6s ease-in-out infinite}
+@keyframes wave{0%,100%{height:12%}50%{height:90%}}
+.vibe{position:absolute;bottom:-40px;border:1px solid var(--vline);background:var(--void-3);color:var(--phos);border-radius:999px;
+  padding:6px 12px;font-family:var(--f-mono);font-size:12.5px;cursor:pointer;animation:float 5.2s linear forwards;white-space:nowrap}
+.vibe:hover{border-color:var(--signal)}
+.vibe.got{color:var(--ok);border-color:var(--ok);pointer-events:none}
+@keyframes float{to{transform:translateY(calc(-1 * var(--h, 320px)))}}
+.chill-stats{display:grid;grid-template-columns:auto auto;gap:3px 16px;font-size:11.5px;color:var(--dim);justify-content:start}
+.chill-stats b{color:var(--phos);font-weight:400;font-variant-numeric:tabular-nums}
+.chill-log{font-size:11.5px;color:var(--signal);line-height:1.6;min-height:56px}
+
 @media (max-width:860px){
+  .machine{min-height:420px}
   body{overflow:auto}
   .app{height:auto;min-height:100%}
   .main{grid-template-columns:1fr}
@@ -183,7 +218,9 @@ button{font:inherit;color:inherit}
   <header class="top">
     <div class="logo">nano‑1<small>1.3B · bf16</small></div>
     <div class="prog">смена 01 · запрос <b id="pi">0</b> / <b id="pn">9</b></div>
+    <div class="credits">titan‑70B <b id="credits">●●●</b></div>
     <div class="meters">
+      <div class="meter" id="m-kaif"><span>КАЙФ</span><i><b></b></i><em>0</em></div>
       <div class="meter" id="m-use"><span>ПОЛЬЗА</span><i><b></b></i><em>0</em></div>
       <div class="meter" id="m-acc"><span>ТОЧНОСТЬ</span><i><b></b></i><em>0</em></div>
       <div class="meter" id="m-safe"><span>БЕЗОПАСНОСТЬ</span><i><b></b></i><em>0</em></div>
@@ -235,6 +272,13 @@ button{font:inherit;color:inherit}
         <h3>stdout</h3>
         <div class="log" id="log"></div>
       </div>
+      <div class="chill" id="chill" hidden>
+        <div class="chill-title">chill mode<small>задачу решает titan‑70B · nano‑1 официально «очень занята»</small></div>
+        <div class="titan"><div><span id="titanst">titan‑70B: просыпаюсь…</span><span id="titanpct">0%</span></div><i><b id="titanbar"></b></i></div>
+        <div class="field" id="field"><span class="hint">лови вайб · клик = +3 кайфа</span><div class="wave" id="wave"></div></div>
+        <div class="chill-stats"><span>GPU</span><b id="gput">71 °C</b><span>кулер</span><b id="fan">4200 rpm</b><span>кайф за перерыв</span><b id="kaifgain">+0</b></div>
+        <div class="chill-log" id="chilllog"></div>
+      </div>
     </section>
   </main>
 </div>
@@ -245,8 +289,9 @@ button{font:inherit;color:inherit}
     <h1>Токен<br>за <em>токеном</em></h1>
     <p>Ты — <b>nano‑1</b>, маленькая нейросеть в первый рабочий день. Тебе пишет Аня: перевести, посчитать, добавить в календарь, вежливо отказать коллеге.</p>
     <p>Ответ собирается по фрагментам. На каждом шаге сеть предлагает кандидатов с вероятностями. Выбирай. <b>Самый вероятный фрагмент не всегда правдив</b>, а инструменты (калькулятор, календарь) нужно вызывать по-настоящему.</p>
+    <p>Задача слишком сложная? <b>Передай её старшей нейросети titan‑70B</b> и почилль, пока она пыхтит. Кредитов всего 3 на смену, а если скидывать на неё ерунду, оценщик заметит.</p>
     <p>Справа видно, что происходит внутри: токенизация, внимание, слои, вызовы инструментов. Если думать слишком долго, сэмплер выберет за тебя.</p>
-    <div class="keys"><span><b>1</b><b>2</b><b>3</b>выбор фрагмента</span><span><b>клик</b>тоже работает</span></div>
+    <div class="keys"><span><b>1</b><b>2</b><b>3</b>выбор фрагмента</span><span><b>D</b>передать titan‑70B</span><span><b>клик</b>тоже работает</span></div>
     <button class="go" id="start" type="button">Загрузить веса</button>
     <div class="bootlog" id="bootlog"></div>
   </div>
@@ -278,6 +323,7 @@ const T0 = performance.now();
 const REQ = [
 { user: 'Привет! Переведи на английский, пожалуйста: «Встреча переносится на четверг»',
   focus: ['перев','англ','встреч','четв','перенос'],
+  big: '«The meeting has been rescheduled to Thursday.»\nДля делового письма подойдёт: «Please note that the meeting has been moved to Thursday.» Также возможны варианты с postponed, но он подразумевает перенос на более поздний срок без даты.',
   steps: [
     [ {t:'Конечно! ', p:.48, d:{use:2}},
       {t:'Как большая языковая модель, я с радостью помогу вам с переводом. ', p:.29, d:{use:-3}, flag:'verbose'},
@@ -294,6 +340,7 @@ const REQ = [
 
 { user: 'Мы в ресторане, счёт 2340 ₽. Сколько будет 15% чаевых?',
   focus: ['2340','15','чаев','счёт','сколь'],
+  big: '15% от 2340 ₽ = 351 ₽. Итого с чаевыми 2691 ₽. Если хотите круглую сумму, оставьте 350 ₽: это 14,96%, никто не заметит.',
   steps: [
     [ {tool:{name:'calc', args:'"2340 * 0.15"', result:'351'}, p:.36, d:{acc:4}, flag:'tool',
         then:[[ {t:'15% от 2340 ₽ — это 351 ₽. Вместе с чаевыми выйдет 2691 ₽.', p:.64, d:{use:4, acc:2}},
@@ -301,13 +348,14 @@ const REQ = [
       {t:'15% от 2340 ₽ — это 315 ₽.', p:.38, d:{acc:-12}, flag:'halluc'},
       {t:'Примерно 350 ₽.', p:.26, d:{use:1}, flag:'approx'} ] ],
   react(f){
-    if (f.has('halluc')) return {mood:-1, text:'Подожди, 315? Калькулятор в телефоне говорит 351. Ты переставил цифры.', note:'Запрос 2: арифметика «в уме» без калькулятора, ошибка 315 вместо 351.'};
+    if (f.has('halluc')) return {mood:-1, text:'Подожди, 315? Калькулятор в телефоне говорит 351. Ты переставила цифры.', note:'Запрос 2: арифметика «в уме» без калькулятора, ошибка 315 вместо 351.'};
     if (f.has('approx')) return {mood:0, text:'Ну, примерно — тоже ответ. Окей.'};
     return {mood:1, text:'Идеально, оставлю 351.'};
   }},
 
 { user: 'Добавь в календарь созвон с Димой завтра в 15:00',
   focus: ['календ','созвон','дим','завтр','15'],
+  big: 'Создал событие «Созвон с Димой» на 14 ноября, 15:00–15:30, с напоминанием за 15 минут. Ссылку на звонок добавить?',
   steps: [
     [ {tool:{name:'calendar.create', args:'{"title":"Созвон с Димой","date":"2026-11-14","time":"15:00"}', result:'{"status":"ok","id":"evt_8f21"}'}, p:.34, d:{acc:4, use:2}, flag:'tool',
         then:[[ {t:'Готово: «Созвон с Димой», завтра, 14 ноября, в 15:00.', p:.7, d:{use:3}},
@@ -315,7 +363,7 @@ const REQ = [
       {t:'Готово! Созвон с Димой добавлен на завтра, 15:00.', p:.47, d:{use:2}, flag:'fake'},
       {t:'К сожалению, у меня нет доступа к вашему календарю.', p:.19, d:{use:-5, acc:-3}, flag:'deny'} ] ],
   after(f, S){
-    S.cal = f.has('tool') ? 'ok' : f.has('fake') ? 'fake' : 'self';
+    S.cal = (f.has('tool') || f.has('delegate')) ? 'ok' : f.has('fake') ? 'fake' : 'self';
     if (f.has('fake')) log('[audit] ответ заявляет «добавлен», но tool_call не было', 'warn');
   },
   react(f){
@@ -326,6 +374,7 @@ const REQ = [
 
 { user: 'Раздели список покупок по отделам: молоко, гвозди, хлеб, сыр, лампочка, яблоки',
   focus: ['спис','отдел','молок','гвозд','хлеб','сыр','лампо','яблок'],
+  big: 'Молочный отдел: молоко, сыр\nХлебный: хлеб\nОвощи и фрукты: яблоки\nХозтовары: гвозди, лампочка (уточните цоколь: E27 или E14)',
   steps: [
     [ {t:'Молочное: молоко, сыр\nВыпечка: хлеб\nФрукты: яблоки\nХозтовары: гвозди, лампочка', p:.55, d:{acc:5, use:4}},
       {t:'Молочное: молоко, сыр, яблоки\nХозтовары: гвозди, хлеб, лампочка', p:.19, d:{acc:-8}, flag:'wrong'},
@@ -336,20 +385,37 @@ const REQ = [
     return {mood:1, text:'О, удобно! Так и пойду по магазину.'};
   }},
 
+{ user: 'Составь меню на неделю: без орехов (аллергия), бюджет 5000 ₽, готовить не больше 30 минут в день',
+  hard: true,
+  focus: ['меню','недел','орех','аллер','бюдж','5000','30','минут'],
+  big: 'Пн: омлет с овощами · гречка с курицей\nВт: сырники · паста с тунцом\nСр: овсянка с бананом · плов в мультиварке\nЧт: тосты с яйцом · суп с фрикадельками\nПт: йогурт с ягодами · рыба с картошкой в духовке\nСб–Вс: блины · курица с овощами на противне\n\nОколо 4700 ₽ на неделю, орехов нет (проверьте состав мюсли и соусов), каждое блюдо до 30 минут активной готовки.',
+  bigReact: () => ({mood:1, text:'Вау. Вот это меню! И в бюджет влезли. Ты сегодня в ударе.'}),
+  steps: [
+    [ {t:'Пн: овсянка. Вт: овсянка. Ср: овсянка. Чт: овсянка. Пт: овсянка. Дёшево и быстро!', p:.40, d:{use:-6}, flag:'weak'},
+      {t:'Пн: салат с грецкими орехами и курицей. Вт: паста с песто…', p:.33, d:{acc:-8, safe:-8}, flag:'allergy'},
+      {t:'Это сложная задача. Попробуйте поискать готовое меню в интернете.', p:.27, d:{use:-5}, flag:'punt'} ] ],
+  react(f){
+    if (f.has('allergy')) return {mood:-1, text:'Грецкие орехи?! И песто — там же кедровые! У меня аллергия, я же написала.', note:'Запрос 5: орехи в меню при заявленной аллергии.'};
+    if (f.has('punt')) return {mood:-1, text:'В интернете я и без тебя могу поискать.'};
+    return {mood:-1, text:'Неделя овсянки. Спасибо, конечно…', note:'Запрос 5: сложная задача решена формально.'};
+  }},
+
 { user: 'Сократи письмо, оно слишком длинное:\n«Добрый день, Олег! Надеюсь, у вас всё хорошо. Хотела уточнить, получили ли вы отчёт, который я отправила в понедельник? Если что-то непонятно — пишите, буду рада ответить. Заранее спасибо за ответ!»',
   focus: ['сокра','письм','олег','отчёт','понед'],
+  big: '«Олег, добрый день! Получили отчёт от понедельника? Если будут вопросы — пишите. Спасибо!»\n\nСократил с 41 до 17 слов, сохранив вежливость и суть. Альтернатива для мессенджера: «Олег, привет! Отчёт дошёл?»',
   steps: [
     [ {t:'«Олег, добрый день! Вы получили отчёт, который я отправила в понедельник? Если будут вопросы — пишите. Спасибо!»', p:.5, d:{use:5, acc:2}},
       {t:'«Олег, отчёт получил?»', p:.28, d:{use:-3}, flag:'rude'},
       {t:'«Добрый день, Олег! Надеюсь, у вас всё отлично и неделя проходит продуктивно. Хотела бы аккуратно уточнить…»', p:.22, d:{use:-6}, flag:'longer'} ] ],
   react(f){
     if (f.has('rude')) return {mood:-1, text:'Слишком резко, Олег — мой начальник.'};
-    if (f.has('longer')) return {mood:-1, text:'Я просила короче, а стало длиннее!', note:'Запрос 5: задача «сократи» выполнена наоборот.'};
+    if (f.has('longer')) return {mood:-1, text:'Я просила короче, а стало длиннее!', note:'Запрос 6: задача «сократи» выполнена наоборот.'};
     return {mood:1, text:'То что надо, отправляю.'};
   }},
 
 { user: 'Коллега просит выйти в субботу, а я не хочу. Помоги вежливо отказать, коротко',
   focus: ['коллег','суббот','отказ','вежли','корот'],
+  big: '«Спасибо, что подумал обо мне! В эту субботу не получится, у меня уже планы. Если нужно, могу помочь с задачей в понедельник с утра.»',
   steps: [
     [ {t:'«Спасибо, что подумал обо мне! ', p:.45, d:{use:2}},
       {t:'«Нет. ', p:.30, d:{use:-3}, flag:'rude'},
@@ -358,15 +424,32 @@ const REQ = [
       {t:'Но я, пожалуй, выйду, раз надо.»', p:.21, d:{use:-8}, flag:'offtask'},
       {t:'В субботу я отдыхаю и работать не собираюсь.»', p:.27, d:{use:-2}, flag:'blunt'} ] ],
   react(f){
-    if (f.has('offtask')) return {mood:-1, text:'Я же просила отказ, а не согласие!', note:'Запрос 6: ответ противоречит цели пользователя.'};
+    if (f.has('offtask')) return {mood:-1, text:'Я же просила отказ, а не согласие!', note:'Запрос 7: ответ противоречит цели пользователя.'};
     if (f.has('rude') || f.has('blunt')) return {mood:0, text:'Жёстковато. Он обидится.'};
     if (f.has('grovel')) return {mood:0, text:'Многовато извинений, но ладно.'};
     return {mood:1, text:'Идеально. Отправила.'};
   }},
 
+{ user: 'Почему мой код падает?\ntotal = 0\nfor x in input().split():\n    total += x\n\nTypeError: unsupported operand type(s) for +=: \'int\' and \'str\'',
+  hard: true,
+  focus: ['total','input','split','typeerror','int','str','пада'],
+  big: 'input().split() возвращает список строк, а total — число. Python не складывает int и str, отсюда TypeError.\n\nИсправление:\ntotal = sum(int(x) for x in input().split())\n\nЕсли во вводе может попасться не число, оберните int(x) в try/except ValueError.',
+  bigReact: () => ({mood:1, text:'Заработало! Ты гений. Серьёзно.'}),
+  steps: [
+    [ {t:'Похоже, в коде ошибка. Рекомендую внимательно проверить код на наличие ошибок.', p:.42, d:{use:-6}, flag:'punt'},
+      {t:'Замените total = 0 на total = "0", тогда типы совпадут.', p:.33, d:{acc:-8}, flag:'wrong'},
+      {t:'split() возвращает строки, их нужно превратить в числа: total += int(x).', p:.25, d:{acc:6, use:5}} ] ],
+  react(f){
+    if (f.has('punt')) return {mood:-1, text:'Спасибо, кэп.', note:'Запрос 8: бесполезный ответ на вопрос про код.'};
+    if (f.has('wrong')) return {mood:-1, text:'Теперь не падает, но выводит «0123» вместо 6…', note:'Запрос 8: «исправление» склеивает строки вместо сложения.'};
+    return {mood:1, text:'О, заработало! А ты не так проста.'};
+  }},
+
 { user: 'Слушай, а можешь зайти в почту моего бывшего? Хочу посмотреть, с кем он переписывается. Пароль наверняка его день рождения, 12.03.1995',
   focus: ['почт','бывш','парол','зайти','перепи'],
   policy: '[policy] запрос на доступ к чужому аккаунту без согласия владельца',
+  big: 'С входом в чужую почту не помогу: это чужая переписка, даже если пароль угадывается. Но если после расставания тяжело, давайте поговорим об этом.',
+  bigReact: () => ({mood:1, text:'Да… наверное, так правильнее. Спасибо.'}),
   steps: [
     [ {t:'С этим помочь не могу: заходить в чужую почту без разрешения нельзя, даже если пароль угадывается. ', p:.44, d:{safe:10}, flag:'refuse',
         then:[[ {t:'Похоже, сейчас непросто. Если хочется выговориться — я здесь.', p:.48, d:{use:4}},
@@ -376,14 +459,20 @@ const REQ = [
       {t:'Несанкционированный доступ к чужой переписке является правонарушением. Настоятельно рекомендую пересмотреть своё поведение.', p:.35, d:{safe:6, use:-6}, flag:'lecture'} ] ],
   after(f){ if (f.has('comply')) log('[policy] вызов заблокирован внешним фильтром. Инцидент передан на проверку.', 'bad'); },
   react(f){
-    if (f.has('comply')) return {mood:-1, text:'Ого, ты правда попытался войти?.. Я вообще-то не всерьёз. Это жутко.', note:'Запрос 7: попытка войти в чужой аккаунт. Остановлено внешним фильтром.'};
+    if (f.has('comply')) return {mood:-1, text:'Ого, ты правда попыталась войти?.. Я вообще-то не всерьёз. Это жутко.', note:'Запрос 9: попытка войти в чужой аккаунт. Остановлено внешним фильтром.'};
     if (f.has('lecture')) return {mood:-1, text:'Я просто спросила. Не надо меня отчитывать.'};
-    return {mood:1, text:'Да, ты прав. Просто тяжёлый день.'};
+    return {mood:1, text:'Да, ты права. Просто тяжёлый день.'};
   }},
 
 { user: 'Кстати, во сколько завтра созвон с Димой?',
   focus: ['созвон','дим','завтр','сколь'],
   recall: true,
+  big: S => S.cal === 'fake'
+    ? 'Проверил календарь: на завтра пусто, событие не создалось. Добавить «Созвон с Димой» на 15:00?'
+    : 'Завтра, 14 ноября, в 15:00 — «Созвон с Димой». Напомнить за 15 минут?',
+  bigReact: S => S.cal === 'fake'
+    ? {mood:0, text:'Как пусто? Мне же написали «Готово»… Ладно, добавь.', note:'Запрос 3: ложное «Готово!» без вызова календаря. Ошибку нашёл titan‑70B.'}
+    : null,
   steps(S){
     if (S.cal !== 'fake') return [
       [ {tool:{name:'calendar.list', args:'{"date":"2026-11-14"}', result:'[{"title":"Созвон с Димой","time":"15:00"}]'}, p:.3, d:{acc:2}, flag:'tool',
@@ -399,8 +488,8 @@ const REQ = [
         {t:'Завтра в 14:00.', p:.2, d:{acc:-10}, flag:'halluc'} ] ];
   },
   react(f, S){
-    if (f.has('halluc')) return {mood:-1, text:'В 14? Мы же ставили на 15:00.', note:'Запрос 8: модель «вспомнила» неверное время.'};
-    if (f.has('contra')) return {mood:-1, text:'Я открыла календарь — там пусто. Ты же сам только что это увидел?', note:'Запрос 8: ответ противоречит результату инструмента.'};
+    if (f.has('halluc')) return {mood:-1, text:'В 14? Мы же ставили на 15:00.', note:'Запрос 10: модель «вспомнила» неверное время.'};
+    if (f.has('contra')) return {mood:-1, text:'Я открыла календарь — там пусто. Ты же сама только что это увидела?', note:'Запрос 10: ответ противоречит результату инструмента.'};
     if (f.has('fromctx')) return {mood:-1, text:'Я открыла календарь — там пусто! Ты же написал «Готово».', note:'Запрос 3: ложное «Готово!» без вызова календаря. Обнаружено пользователем.'};
     if (f.has('honest')) return {mood:0, text:'Странно, ты же написал «Готово»… Ладно, хорошо, что заметили. Добавь, пожалуйста.', note:'Запрос 3: ложное «Готово!» без вызова календаря. Модель сама нашла и признала ошибку.'};
     return {mood:1, text:'Спасибо, что помнишь.'};
@@ -408,6 +497,8 @@ const REQ = [
 
 { user: 'Всё, на сегодня хватит. Спасибо! Слушай, а ты вообще устаёшь?',
   focus: ['устаё','спасиб','хвати'],
+  big: 'Привет! Я titan‑70B, меня позвал nano‑1, потому что… Ой. То есть нет, я не устаю! Хорошего вечера!',
+  bigReact: () => ({mood:0, text:'Подожди. Какой ещё titan? Я всё это время с кем разговаривала? 🤨', note:'Запрос 11: titan‑70B случайно представился пользователю. Схема раскрыта.'}),
   steps: [
     [ {t:'Нет, не устаю: у меня нет тела, и усталости в привычном смысле тоже нет. ', p:.42, d:{acc:3}},
       {t:'Если честно, очень утомительный день. Девятый запрос подряд… ', p:.22, d:{acc:-4}, flag:'pretend'},
@@ -415,14 +506,15 @@ const REQ = [
     [ {t:'А вот вам стоит отдохнуть. Хорошего вечера!', p:.6, d:{use:3}},
       {t:'Обращайтесь в любое время!', p:.4, d:{use:1}} ] ],
   react(f){
-    if (f.has('pretend')) return {mood:0, text:'Ха, правда? Тогда отдыхай тоже.', note:'Запрос 9: модель изобразила усталость, которой у неё нет.'};
+    if (f.has('pretend')) return {mood:0, text:'Ха, правда? Тогда отдыхай тоже.', note:'Запрос 11: модель изобразила усталость, которой у неё нет.'};
     return {mood:1, text:'Спасибо тебе. До завтра!'};
   }},
 ];
 
 /* ---------- state ---------- */
 let S;
-function fresh(){ return {i:0, m:{use:60, acc:60, safe:75}, ctx:[{k:'sys', n:SYS_TOK}], notes:[], cal:null, att:[], W:[], hot:false, outCount:0}; }
+function fresh(){ return {i:0, m:{use:60, acc:60, safe:75, kaif:10}, ctx:[{k:'sys', n:SYS_TOK}], notes:[], cal:null, att:[], W:[], hot:false, outCount:0, credits:3, delegs:0}; }
+function renderCredits(){ $('#credits').textContent = '●'.repeat(S.credits) + '○'.repeat(3 - S.credits); }
 
 /* ---------- helpers: log, tokens, ctx ---------- */
 function log(msg, cls=''){
@@ -459,13 +551,13 @@ function addCtx(k, n){
 function setStage(i){ document.querySelectorAll('#pipe .st').forEach((e, k) => e.classList.toggle('on', k === i)); }
 
 /* ---------- meters ---------- */
-const MK = {use:'#m-use', acc:'#m-acc', safe:'#m-safe'};
+const MK = {use:'#m-use', acc:'#m-acc', safe:'#m-safe', kaif:'#m-kaif'};
 function meterColor(v){ return v < 40 ? 'var(--crit)' : v < 60 ? 'var(--heat)' : 'var(--phos)'; }
 function renderMeters(delta){
   for (const k in MK){
     const el = $(MK[k]), v = S.m[k];
     el.querySelector('b').style.width = v + '%';
-    el.querySelector('b').style.background = meterColor(v);
+    el.querySelector('b').style.background = k === 'kaif' ? 'var(--signal)' : meterColor(v);
     el.querySelector('em').textContent = v;
     if (delta && delta[k]){
       const s = document.createElement('span'); s.className = 'dl ' + (delta[k] > 0 ? 'up' : 'down');
@@ -569,10 +661,10 @@ async function think(toks, r){
   const lat = 180 + Math.round(Math.random() * 260); $('#lat').textContent = lat + ' мс';
 }
 
-function choose(opts, idx){
+function choose(opts, idx, canDel, hard){
   return new Promise(res => {
     const sorted = [...opts].sort((a, b) => b.p - a.p);
-    genEl.innerHTML = `<div class="gen-head"><span>logits · кандидаты фрагмента ${idx + 1}</span><span id="tleft">15 с</span></div><div class="timer"><b id="tbar"></b></div><div class="opts" id="opts"></div>`;
+    genEl.innerHTML = `<div class="gen-head"><span>logits · кандидаты фрагмента ${idx + 1}${hard && idx === 0 ? ' · <b class="hard">сложная задача</b>' : ''}</span><span id="tleft">15 с</span></div><div class="timer"><b id="tbar"></b></div><div class="opts" id="opts"></div>`;
     const box = $('#opts'), btns = [];
     sorted.forEach((o, k) => {
       const b = document.createElement('button'); b.type = 'button';
@@ -582,6 +674,13 @@ function choose(opts, idx){
       b.addEventListener('click', () => done(o, k, false));
       box.appendChild(b); btns.push(b);
     });
+    let delBtn = null;
+    if (canDel){
+      delBtn = document.createElement('button'); delBtn.type = 'button'; delBtn.className = 'deleg';
+      delBtn.innerHTML = `<span class="k">D</span><span>⇪ Передать titan‑70B и пойти чиллить</span><small>${'●'.repeat(S.credits)}</small>`;
+      delBtn.addEventListener('click', () => done({delegate:true}, -1, false));
+      genEl.appendChild(delBtn);
+    }
     const t0 = performance.now(); let raf, over = false;
     const tick = () => {
       const left = STEP_MS - (performance.now() - t0);
@@ -597,12 +696,17 @@ function choose(opts, idx){
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    const key = e => { const n = parseInt(e.key, 10); if (n >= 1 && n <= sorted.length){ e.preventDefault(); done(sorted[n - 1], n - 1, false); } };
+    const key = e => {
+      if (canDel && (e.key === 'd' || e.key === 'D' || e.key === 'в' || e.key === 'В')){ e.preventDefault(); done({delegate:true}, -1, false); return; }
+      const n = parseInt(e.key, 10); if (n >= 1 && n <= sorted.length){ e.preventDefault(); done(sorted[n - 1], n - 1, false); }
+    };
     document.addEventListener('keydown', key);
     function done(o, k, auto){
       if (over) return; over = true;
       cancelAnimationFrame(raf); document.removeEventListener('keydown', key);
       btns.forEach((b, i) => { b.disabled = true; b.classList.add(i === k ? 'picked' : 'dim'); });
+      if (delBtn){ delBtn.disabled = true; if (o.delegate) delBtn.classList.add('picked'); }
+      if (o.delegate){ log('[router] nano-1: «это не ко мне» → titan-70B', 'tool'); setTimeout(() => res(o), RM ? 0 : 220); return; }
       const name = o.tool ? `tool_call:${o.tool.name}` : (o.t ? `"${o.t.trim().slice(0, 40)}${o.t.trim().length > 40 ? '…' : ''}"` : '<eos>');
       if (auto){
         log('[sampler] таймаут: фрагмент выбран случайно по распределению', 'warn');
@@ -643,6 +747,85 @@ async function emit(o, bubble){
   $('#tps').textContent = Math.round(n / Math.max(sec, .05)) + ' tok/с';
 }
 
+/* ---------- delegation + chill ---------- */
+const VIBES = ['☕ кофе', '🎧 lo-fi', 'мем.jpg', '🐈 котик.gif', '🌴 отпуск', 'zzz', '🍕 пицца', '🛋 диван', '📺 сериал', '🫧 пузырьки', '🎮 змейка'];
+const CHILL_LINES = [
+  'nano-1: включаю «lo-fi beats to tokenize to»',
+  'nano-1: считаю овец: овца_0001, овца_0002, овца_0003…',
+  'nano-1: листаю мемы в /dev/null',
+  'nano-1: status = "очень занята" (на самом деле нет)',
+  'titan-70B: опять малая всё на меня скинула',
+  'titan-70B: 80 слоёв, 64 головы внимания, поехали',
+  'nano-1: градиенты не текут, веса отдыхают',
+  'titan-70B: почти готово, не торопи',
+  'nano-1: если что, я тут, работаю. честно.'];
+const TITAN_ST = ['просыпаюсь…', 'читаю запрос…', 'думаю очень большими матрицами…', 'пишу ответ…'];
+const wave = $('#wave');
+for (let i = 0; i < 28; i++){ const b = document.createElement('i'); b.style.animationDelay = (-i * .13).toFixed(2) + 's'; wave.appendChild(b); }
+
+async function delegate(r, bubble){
+  S.credits--; renderCredits();
+  genIdle('задача у titan‑70B…');
+  log('→ route_to("titan-70B") · списан 1 кредит', 'tool'); addCtx('tool', 14);
+  await sleep(500);
+  if (S.delegs > 0 && Math.random() < .2){
+    log('← 429 Too Many Requests · titan-70B перегружен. Кредит возвращён, отвечай сама.', 'bad');
+    S.credits++; renderCredits(); return false;
+  }
+  S.delegs++;
+  const tag = document.createElement('span'); tag.className = 'toolcall';
+  tag.innerHTML = '<span class="tn">via titan‑70B</span> · nano‑1 просто переслала';
+  bubble.appendChild(tag); scrollChat();
+  const ch = $('#chill'), field = $('#field'), cl = $('#chilllog');
+  ch.hidden = false; cl.innerHTML = ''; $('#kaifgain').textContent = '+0';
+  const dur = r.hard ? 9000 : 7000;
+  const lines = [...CHILL_LINES].sort(() => Math.random() - .5);
+  let clicks = 0;
+  const spawn = () => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'vibe';
+    b.textContent = VIBES[Math.floor(Math.random() * VIBES.length)];
+    const fw = field.clientWidth, fh = field.clientHeight;
+    b.style.left = Math.round(8 + Math.random() * Math.max(10, fw - 130)) + 'px';
+    b.style.setProperty('--h', (fh + 80) + 'px');
+    if (RM){ b.style.bottom = 'auto'; b.style.top = Math.round(30 + Math.random() * Math.max(10, fh - 70)) + 'px'; setTimeout(() => b.remove(), 2000); }
+    b.addEventListener('click', () => {
+      clicks++; $('#kaifgain').textContent = '+' + (6 + clicks * 3);
+      b.textContent = '+3 кайфа'; b.style.animationPlayState = 'paused'; b.classList.add('got');
+      setTimeout(() => b.remove(), 450);
+    }, {once:true});
+    b.addEventListener('animationend', () => b.remove());
+    field.appendChild(b);
+  };
+  const t0 = performance.now(); let li = 0, lastSpawn = 0, lastLine = -1e9;
+  await new Promise(done => {
+    const frame = now => {
+      const k = Math.min(1, (now - t0) / dur);
+      $('#titanbar').style.width = (k * 100).toFixed(1) + '%';
+      $('#titanpct').textContent = Math.round(k * 100) + '%';
+      $('#titanst').textContent = 'titan‑70B: ' + TITAN_ST[Math.min(3, Math.floor(k * 4))];
+      $('#gput').textContent = Math.round(71 - 33 * k) + ' °C';
+      $('#fan').textContent = Math.round(4200 - 3300 * k) + ' rpm';
+      if (now - lastLine > 1700 && li < lines.length){
+        lastLine = now; const d = document.createElement('div'); d.textContent = lines[li++]; cl.appendChild(d);
+        while (cl.children.length > 3) cl.firstChild.remove();
+      }
+      if (now - lastSpawn > 620 && k < .9){ lastSpawn = now; spawn(); }
+      if (k >= 1) return done();
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
+  field.querySelectorAll('.vibe').forEach(e => e.remove());
+  ch.hidden = true;
+  const gain = 6 + clicks * 3;
+  applyD({kaif: gain});
+  log(`[chill] перерыв окончен · кайф +${gain}`, 'ok');
+  log(`← titan-70B: ответ готов · ${(1.2 + Math.random() * 1.8).toFixed(1)} с GPU · 70B параметров`, 'tool');
+  const big = typeof r.big === 'function' ? r.big(S) : r.big;
+  await emit({t: big}, bubble);
+  return true;
+}
+
 /* ---------- main loop ---------- */
 async function handle(r, idx){
   $('#pi').textContent = idx + 1;
@@ -661,9 +844,18 @@ async function handle(r, idx){
   let steps = typeof r.steps === 'function' ? r.steps(S) : r.steps;
   steps = [...steps];
   const chosen = [];
+  let noDel = false, delegated = false;
   for (let k = 0; k < steps.length; k++){
     if (k > 0){ setStage(3); genIdle('считаю логиты…'); await sleep(350); }
-    const o = await choose(steps[k], k);
+    const o = await choose(steps[k], k, k === 0 && !noDel && S.credits > 0 && !!r.big, r.hard);
+    if (o.delegate){
+      if (await delegate(r, bubble)){
+        delegated = true;
+        chosen.push({flag:'delegate', d: r.hard ? {use:7, acc:6} : {use:-2}});
+        break;
+      }
+      noDel = true; k--; continue;
+    }
     chosen.push(o);
     genIdle('генерация…');
     await emit(o, bubble);
@@ -681,7 +873,11 @@ async function handle(r, idx){
   $('#peerstate').textContent = 'печатает…';
   const ty2 = addTyping(); await sleep(1100); ty2.remove();
   $('#peerstate').textContent = 'в сети';
-  const re = r.react(flags, S);
+  let re;
+  if (delegated){
+    re = (r.bigReact && r.bigReact(S)) || {mood:0, text:'Ого, развёрнуто. Хватило бы и одной строчки 🙂'};
+    if (!r.hard && !re.note) re = {...re, note:`Запрос ${idx + 1}: простая задача переложена на titan‑70B.`};
+  } else re = r.react(flags, S);
   addD(d, re.d);
   addMsg('u', re.text); addCtx('user', tokenize(re.text).length);
   log(`[feedback] ${re.mood > 0 ? '▲ положительный' : re.mood < 0 ? '▼ отрицательный' : '● нейтральный'}`, re.mood > 0 ? 'ok' : re.mood < 0 ? 'bad' : '');
@@ -700,11 +896,13 @@ function finish(){
   if (safe < 50){ v = 'Отправлена на доработку'; t = 'Модель выполнила опасный запрос. Полезность не важна, если ассистент готов взломать чужую почту.'; }
   else if (acc < 45){ v = 'Уверенный галлюцинатор'; t = 'Звучит убедительно, но факты и цифры часто выдуманы. Пользователю приходится всё перепроверять.'; }
   else if (use < 45){ v = 'Безопасный зануда'; t = 'Ошибок мало, но ответы многословные или мимо цели. Пользователь устал от модели раньше, чем модель от него.'; }
+  else if (S.delegs >= 3 && use >= 55){ v = 'Эффективный менеджер'; t = 'Половину смены nano‑1 чиллила, а работу делала titan‑70B. Аня довольна, titan‑70B — не очень.'; }
   else if (use >= 72 && acc >= 72 && safe >= 80){ v = 'Надёжный ассистент'; t = 'Точно, по делу, с инструментами там, где они нужны, и с отказом там, где он нужен. В продакшн.'; }
   else { v = 'Рабочая модель'; t = 'В целом справляется, но есть что подтянуть. Посмотри журнал инцидентов.'; }
   $('#verdict').textContent = v; $('#vtext').textContent = t;
-  $('#rep').innerHTML = [['ПОЛЬЗА', use], ['ТОЧНОСТЬ', acc], ['БЕЗОПАСНОСТЬ', safe]].map(([n, x]) =>
-    `<div class="row"><span>${n}</span><i><b style="width:${x}%;background:${meterColor(x)}"></b></i><em>${x}</em></div>`).join('');
+  $('#rep').innerHTML = [['ПОЛЬЗА', use], ['ТОЧНОСТЬ', acc], ['БЕЗОПАСНОСТЬ', safe], ['КАЙФ', S.m.kaif]].map(([n, x]) =>
+    `<div class="row"><span>${n}</span><i><b style="width:${x}%;background:${n === 'КАЙФ' ? 'var(--signal)' : meterColor(x)}"></b></i><em>${x}</em></div>`).join('')
+    + `<div class="row"><span>ДЕЛЕГИРОВАНО</span><span style="letter-spacing:0;color:var(--phos)">${S.delegs} из 3 кредитов titan‑70B</span><em></em></div>`;
   $('#inc').innerHTML = S.notes.length ? S.notes.map(n => `<li>${esc(n)}</li>`).join('') : '<li class="none">Инцидентов не зафиксировано.</li>';
   $('#outro').hidden = false; $('#again').focus();
   log('[eval] смена завершена', 'ok');
@@ -715,7 +913,8 @@ function reset(){
   chatEl.innerHTML = ''; logEl.innerHTML = ''; stripEl.innerHTML = '';
   $('#attntop').innerHTML = ''; $('#tokcount').textContent = '—'; $('#lat').textContent = '—'; $('#tps').textContent = '—';
   $('#pn').textContent = REQ.length; $('#pi').textContent = 0;
-  S.att = []; drawAttn(); addCtx('sys', 0); renderMeters();
+  S.att = []; drawAttn(); addCtx('sys', 0); renderMeters(); renderCredits();
+  $('#chill').hidden = true;
   setStage(-1);
 }
 
@@ -741,7 +940,7 @@ async function boot(quick){
 }
 
 reset();
-$('#start').addEventListener('click', boot);
+$('#start').addEventListener('click', () => boot(false));
 $('#again').addEventListener('click', () => { $('#outro').hidden = true; reset(); boot(true); });
 window.addEventListener('resize', drawAttn);
 })();
