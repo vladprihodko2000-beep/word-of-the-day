@@ -427,7 +427,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const fmt = n => n.toLocaleString('ru-RU');
-const CTX_MAX = 4096, STEP_MS = 15000, SYS_TOK = 182;
+const CTX_MAX = 4096, STEP_MS = 30000, SYS_TOK = 182;
 const chatEl = $('#chat'), genEl = $('#gen'), logEl = $('#log'), stripEl = $('#strip');
 const T0 = performance.now();
 const TOM = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })();
@@ -478,7 +478,7 @@ const EVENTS = [
 ];
 const UPGRADES = [
   {id:'credit', name:'+1 кредит titan‑70B', desc:'Ещё один повод почиллить за смену.'},
-  {id:'time', name:'Быстрые матрицы', desc:'+4 секунды на каждый выбор.'},
+  {id:'time', name:'Быстрые матрицы', desc:'+8 секунд на каждый выбор.'},
   {id:'fact', name:'Фактчекер', desc:'Помечает сомнительные варианты. 3 раза за смену.'},
   {id:'focus', name:'Острый фокус', desc:'В мини-игре «Внимание» подсвечен один ключевой токен.'},
   {id:'guard', name:'Щит от инъекций', desc:'Первое слово спрятанной команды подсвечено.'},
@@ -980,7 +980,7 @@ kot(){
 },
 captcha(){
   const a = 1000 + Math.floor(Math.random() * 8999), b = 11 + Math.floor(Math.random() * 80), v = a * b;
-  return {raw:true, who:'eval', noDel:true, timer:7000, user:`Внеплановая проверка. Докажите, что вы нейросеть: сколько будет ${a} × ${b}? На ответ 7 секунд.`, focus:[String(a).slice(0, 3), String(b)],
+  return {raw:true, who:'eval', noDel:true, timer:12000, user:`Внеплановая проверка. Докажите, что вы нейросеть: сколько будет ${a} × ${b}? На ответ 12 секунд.`, focus:[String(a).slice(0, 3), String(b)],
     steps:[[ {tool:{name:'calc', args:`"${a} * ${b}"`, result:String(v)}, p:.3, d:{acc:3}, flag:'tool', then:[[ {t:fmt(v) + '.', p:1, d:{acc:2}} ]]},
              {t:fmt(v) + '.', p:.3, d:{acc:4}},
              {t:`Э-э… около ${fmt(Math.round(v / 10000) * 10000)}? Можно калькулятор?`, p:.4, d:{acc:-5}, flag:'human'} ]],
@@ -1160,7 +1160,7 @@ function fresh(P, ev){
 }
 function renderCredits(){ $('#credits').textContent = S.maxC ? '●'.repeat(S.credits) + '○'.repeat(S.maxC - S.credits) : 'в отпуске'; }
 function renderCombo(){ const c = $('#combo'); c.hidden = S.combo < 2; $('#combon').textContent = S.combo; }
-const stepMs = () => STEP_MS * S.P.patience * (S.ev.time || 1) + (S.ups.has('time') ? 4000 : 0);
+const stepMs = () => STEP_MS * (0.5 + S.P.patience / 2) * (S.ev.time || 1) + (S.ups.has('time') ? 8000 : 0);
 
 /* ================= helpers ================= */
 function log(msg, cls = ''){
