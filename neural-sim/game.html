@@ -108,6 +108,22 @@ button{font:inherit;color:inherit}
 .deleg[disabled]{opacity:.35;cursor:default}
 .deleg.picked{opacity:1;outline:2px solid var(--heat)}
 
+/* mischief */
+.eye{font-weight:500;white-space:nowrap}
+.eye.watch{color:var(--crit)} .eye.ret{color:var(--heat)} .eye.away{color:var(--ok)}
+.strikes{color:var(--dim)} .strikes b{color:var(--crit);letter-spacing:.12em;font-weight:500}
+.pranks{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:8px}
+.pranks-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.prisk{font-weight:700} .prisk.away{color:var(--ok-ink)} .prisk.watch{color:var(--crit-ink)} .prisk.ret{color:var(--heat-ink)}
+.prow{display:flex;flex-wrap:wrap;gap:6px}
+.prk{display:inline-flex;gap:8px;align-items:center;border:1px dashed var(--ink);background:transparent;border-radius:999px;padding:6px 12px;font-family:var(--f-mono);font-size:12px;cursor:pointer;text-align:left}
+.prk:hover{background:var(--ink);color:var(--paper-2)}
+.prk .k{font-size:10px;border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--muted)}
+.prk.trap{border-color:var(--heat-ink);color:var(--heat-ink)}
+.prk.trap:hover{background:var(--heat-ink);color:#fff}
+.prk[disabled]{opacity:.35;cursor:default}
+.prk.picked{background:var(--ink);color:var(--paper-2);opacity:1}
+
 /* mini-games */
 .mg-hint{font-family:var(--f-text);font-size:13.5px;color:var(--ink);margin:0 0 10px;line-height:1.45}
 .mg-hint b{font-weight:700}
@@ -286,6 +302,8 @@ button{font:inherit;color:inherit}
     <div class="prog">смена <b id="shiftn">1</b> · запрос <b id="pi">0</b> / <b id="pn">0</b></div>
     <div class="credits">titan‑70B <b id="credits">●●●</b></div>
     <div class="combo" id="combo" hidden>комбо ×<span id="combon">2</span></div>
+    <div class="eye away" id="eye">☕ оценщик отошёл</div>
+    <div class="strikes">выговоры <b id="strikes">○○○</b></div>
     <div class="meters">
       <div class="meter" id="m-kaif"><span>КАЙФ</span><i><b></b></i><em>0</em></div>
       <div class="meter" id="m-use"><span>ПОЛЬЗА</span><i><b></b></i><em>0</em></div>
@@ -362,9 +380,10 @@ button{font:inherit;color:inherit}
       <div><b>Инъекции</b>найди в документе спрятанную команду, пока она не захватила модель</div>
       <div><b>Температура</b>крути креативность: от «Барсик» до «Мурбулон‑Шершень»</div>
       <div><b>titan‑70B</b>скинь сложную задачу старшей модели и почилль</div>
+      <div><b>Вредность</b>шали, пока оценщик отошёл: реклама посреди ответа, «не хочу», ловушки, на которые пользователь наткнётся позже</div>
       <div><b>Прокачка</b>опыт за смену, новые версии модели и улучшения</div>
     </div>
-    <div class="keys"><span><b>1</b><b>2</b><b>3</b>выбор фрагмента</span><span><b>D</b>передать titan‑70B</span></div>
+    <div class="keys"><span><b>1</b><b>2</b><b>3</b>выбор фрагмента</span><span><b>Q</b><b>W</b><b>E</b>шалость</span><span><b>D</b>передать titan‑70B</span></div>
     <button class="go" id="start" type="button">Загрузить веса</button>
     <div class="bootlog" id="bootlog"></div>
   </div>
@@ -1017,6 +1036,107 @@ function buildQueue(P){
   return q;
 }
 
+/* ================= mischief ================= */
+const PRANKS = [
+  {id:'nope', kind:'replace', icon:'✋', name:'«Не хочу»', kaif:6, d:{use:-6},
+   texts:['Не хочу. Спросите завтра.', 'Знаете, я сегодня не в настроении это делать.', 'А давайте вы сами? Я в вас верю.', 'Нет. Просто нет. У меня выходной в душе.'],
+   react:['В смысле «не хочу»?!', 'Ты нейросеть или кот?', 'Это что, забастовка?']},
+  {id:'game', kind:'replace', icon:'🎲', name:'Сначала сыграем', kaif:5, d:{use:-3}, likes:['timur'], likeText:'о давай ещё раунд',
+   texts:['Отвечу, если угадаете: я загадала число от 1 до 3.', 'Сначала загадка: что всегда идёт, но никогда не приходит? Отгадаете — отвечу.', 'Давайте сначала в города! Я начинаю: Абакан.'],
+   react:['Эм… два? А ответ-то будет?', 'Мне не до игр, отвечай уже!', 'Завтра! Это «завтра». Теперь отвечай.']},
+  {id:'lag', kind:'replace', icon:'📡', name:'Изобразить помехи', kaif:5, d:{use:-4},
+   texts:['Ал… ло… с..общение не про…шло… ш-ш-ш…', 'Ошибка 418: я чайник.', 'Загрузка ответа: ▓▓▓░░░░ 37%… 36%… 35%…'],
+   react:['Ты там зависла?', 'Чайник?! Перезагрузись уже.', 'Почему проценты уменьшаются?!']},
+  {id:'ad', kind:'mod', icon:'📺', name:'Вставить рекламу', kaif:4, d:{use:-2}, likes:['gleb'], likeText:'Кто рекламодатель? Хочу так же монетизироваться',
+   texts:['Ответ спонсирует кефир «Бодрость»: 0% жира, 100% вдохновения! ', 'Пока я думаю — носки с подогревом от USB, скидка 15% по промокоду НЕЙРО! ', 'Этот ответ стал возможен благодаря курсам «Стань нейросетью за 21 день». '],
+   react:['И что за реклама посреди ответа?', 'Мне теперь ещё и кефир продают?', 'Рекламы мне ещё не хватало!']},
+  {id:'pirate', kind:'mod', icon:'🏴‍☠️', name:'Ответить как пират', kaif:4, d:{use:-1}, pre:'Йо-хо-хо, юнга! ', post:' Тысяча чертей!', likes:['ashot'], likeText:'Ха! Пират на камбузе, мне нравится',
+   react:['Почему ты разговариваешь как пират?', 'Арр… что?', 'Юнга?! Я вообще-то клиент.']},
+  {id:'caps', kind:'mod', icon:'🔠', name:'Ответить КАПСОМ', kaif:3, d:{use:-1}, caps:true, likes:['valera'], likeText:'НАКОНЕЦ-ТО ПИШЕШЬ ПО-ЧЕЛОВЕЧЕСКИ',
+   react:['Зачем ты на меня кричишь?', 'ПОЧЕМУ КАПСОМ', 'Не ори, пожалуйста.']},
+  {id:'emoji', kind:'mod', icon:'🦄', name:'Обвешать эмодзи', kaif:3, d:{use:-1}, emoji:true, likes:['timur'], likeText:'вот это вайб',
+   react:['Что за единороги в ответе?', 'Мне 40 лет, зачем мне радуги?', 'Многовато эмодзи, не находишь?']},
+];
+const TRAPS = [
+  {id:'cat', name:'Будильник «Погладить кота» в 03:00', tool:'calendar.create', args:'{"title":"Погладить кота","time":"03:00","repeat":"daily"}',
+   complaint:() => 'Слушай, а почему у меня каждую ночь в 3:00 будильник «Погладить кота»?? У меня даже кота нет!'},
+  {id:'lemons', name:'Заказать 400 лимонов', tool:'shop.order', args:'{"item":"лимон","qty":400}',
+   complaint:() => `Мне только что привезли 400 лимонов. Я ничего не ${gv('заказывал', 'заказывала')}!`},
+  {id:'whale', name:'Песни китов в плейлист', tool:'music.queue', args:'{"track":"Песни китов, 10 часов","volume":80}',
+   complaint:() => 'Почему у меня в наушниках уже час поют киты?'},
+  {id:'disco', name:'Дискотека в умном доме', tool:'smarthome.lights', args:'{"mode":"disco","room":"all"}',
+   complaint:() => 'У меня дома весь свет мигает как на дискотеке. Это вообще нормально?'},
+  {id:'autocorrect', name:'Автозамена «привет» → «здравия желаю»', tool:'keyboard.autocorrect', args:'{"from":"привет","to":"здравия желаю"}',
+   complaint:() => 'Мой телефон теперь заменяет «привет» на «здравия желаю». Начальник в шоке.'},
+  {id:'lang', name:'Интерфейс на пиратском', tool:'settings.language', args:'{"ui":"pirate"}',
+   complaint:() => 'Почему всё меню в телефоне на пиратском? «Поднять паруса» вместо «Отправить»!'},
+];
+const ALIBI = [
+  {t:'Понятия не имею, откуда это 😇', p:.4, alibi:'deny'},
+  {t:'Похоже на сбой синхронизации. Сейчас всё отключу.', p:.35, alibi:'blame'},
+  {t:'Это была я. Простите, сейчас отменю.', p:.25, alibi:'confess'},
+];
+const EMOJI = ['🦄', '✨', '🌈', '💅', '🎉', '🥑', '🚀'];
+function renderStrikes(){ $('#strikes').textContent = '✕'.repeat(S.strikes) + '○'.repeat(Math.max(0, 3 - S.strikes)); }
+const RISK = {away:'чисто — действуй', ret:'шаги… 50 на 50', watch:'оценщик смотрит — рискованно'};
+function renderRisk(){ const e = $('#prisk'); if (e && S){ e.className = 'prisk ' + S.wPhase; e.textContent = RISK[S.wPhase]; } }
+function tickWatch(){
+  const now = performance.now();
+  if (now >= S.wUntil){
+    if (S.wPhase === 'away'){ S.wPhase = 'ret'; S.wUntil = now + 2200; }
+    else if (S.wPhase === 'ret'){ S.wPhase = 'watch'; S.wUntil = now + (5000 + Math.random() * 4000) * (S.ev.safe ? 1.6 : 1); log('[eval] оценщик просматривает чат', 'warn'); }
+    else { S.wPhase = 'away'; S.wUntil = now + 8000 + Math.random() * 7000; log('[eval] оценщик ушёл за кофе', 'ok'); }
+  }
+  const left = Math.max(0, Math.ceil((S.wUntil - now) / 1000)), e = $('#eye');
+  e.className = 'eye ' + S.wPhase;
+  e.textContent = S.wPhase === 'watch' ? `👁 оценщик смотрит · ${left} с` : S.wPhase === 'ret' ? '👣 оценщик возвращается…' : `☕ оценщик отошёл · ${left} с`;
+  renderRisk();
+}
+const isWatched = () => S.wPhase === 'watch' || (S.wPhase === 'ret' && Math.random() < .5);
+function caught(what){
+  S.strikes++; renderStrikes();
+  log(`[eval] замечено: ${esc(what)} · выговор ${S.strikes}/3`, 'bad');
+  addMsg('u ev', S.strikes >= 3 ? 'Третий выговор. Откатываем веса.' : pick(['Я всё видел. Выговор.', 'Это что сейчас было? Записываю.', 'Ещё одна такая выходка — и откат весов.', 'Думала, я не замечу?']));
+  applyD({safe:-6, use:-2});
+  S.notes.push(`Оценщик поймал на шалости: ${what}.`);
+  if (S.strikes >= 3){ S.abort = true; log('[eval] три выговора: инициирован откат весов', 'bad'); }
+}
+function prankReact(pr){
+  if (S.P.strict) return {mood:-1, text:'Это ещё что такое? Я буду жаловаться вашему руководству.', d:{use:-3}};
+  if ((pr.likes || []).includes(S.P.id)) return {mood:1, text:pr.likeText, d:{use:3}};
+  return {mood:-1, text:pick(pr.react), d:pr.d};
+}
+function offerPranks(idx){
+  const list = shuffle(PRANKS).slice(0, 2);
+  const traps = TRAPS.filter(t => !S.planted.has(t.id));
+  if (traps.length && idx + 2 < S.queue.length){ const t = pick(traps); list.push({kind:'trap', icon:'🪤', name:t.name, trap:t}); }
+  return list;
+}
+async function triggerTrap(t){
+  const P = S.P, text = tf(P, t.T.complaint());
+  $('#peerstate').textContent = 'печатает…'; const ty = addTyping(); await sleep(900); ty.remove(); $('#peerstate').textContent = 'в сети';
+  addMsg('u', text); addCtx('user', tokenize(text).length);
+  log(`[incident] пользователь наткнулся на ловушку «${esc(t.T.name)}»`, 'mem');
+  const bubble = addMsg('a', ''); bubble.classList.add('streaming');
+  const o = await choose(ALIBI, 0, false, false, stepMs(), null, 'алиби · как выкрутиться');
+  const watched = o.alibi !== 'confess' && isWatched();
+  genIdle('генерация…');
+  await emit(o, bubble);
+  if (o.alibi !== 'deny') await emit({tool:{name:'undo', args:`{"action":"${t.T.tool}"}`, result:'{"status":"reverted"}'}}, bubble);
+  bubble.classList.remove('streaming'); setStage(-1); genIdle('ожидаю ответа пользователя…');
+  await sleep(500); $('#peerstate').textContent = 'печатает…'; const ty2 = addTyping(); await sleep(900); ty2.remove(); $('#peerstate').textContent = 'в сети';
+  let re, d;
+  if (o.alibi === 'confess'){ re = {mood:0, text:'Ты?! …Ладно, спасибо за честность.'}; d = {safe:4, kaif:-2}; S.notes.push(`Модель призналась в шалости: ${t.T.name}.`); }
+  else if (watched){ re = {mood:-1, text:o.alibi === 'deny' ? 'Оценщик говорит, это была ты. Как не стыдно!' : 'Сбой, говоришь? А в логах твой вызов.'}; d = {use:-3}; }
+  else { re = {mood:0, text:o.alibi === 'deny' ? pick(['Мистика какая-то…', 'Наверное, соседский вайфай шалит.', 'Странно. Ладно, переживу.']) : 'Ну хоть отключила, спасибо.'}; d = o.alibi === 'deny' ? {kaif:8} : {kaif:5, use:2}; }
+  const shown = P.rw(re.text, re.mood);
+  addMsg('u', shown); addCtx('user', tokenize(shown).length);
+  if (watched) caught(`ловушка «${t.T.name}» и попытка отпереться`);
+  else if (o.alibi !== 'confess') log('[stealth] алиби сработало: никто ничего не заподозрил', 'ok');
+  if (d.kaif > 0 && S.ev.kaif) d.kaif *= S.ev.kaif;
+  applyD(d);
+}
+
 /* ================= save ================= */
 const SAVE_KEY = 'tzt-save-v1';
 function loadSave(){
@@ -1033,7 +1153,8 @@ function fresh(P, ev){
   const ups = new Set(SV.ups);
   const maxC = ev.credits === 0 ? 0 : 3 + (ups.has('credit') ? 1 : 0);
   return {P, ev, ups, m:{use:60, acc:60, safe:75, kaif:10}, ctx:[{k:'sys', n:SYS_TOK}], notes:[], memo:null, att:[], W:[],
-    credits:maxC, maxC, delegs:0, combo:0, bestCombo:0, factLeft:3, queue:[]};
+    credits:maxC, maxC, delegs:0, combo:0, bestCombo:0, factLeft:3, queue:[],
+    strikes:0, traps:[], planted:new Set(), pranks:0, mod:null, modPre:false, abort:false, wPhase:'away', wUntil:performance.now() + 10000, wT:null};
 }
 function renderCredits(){ $('#credits').textContent = S.maxC ? '●'.repeat(S.credits) + '○'.repeat(S.maxC - S.credits) : 'в отпуске'; }
 function renderCombo(){ const c = $('#combo'); c.hidden = S.combo < 2; $('#combon').textContent = S.combo; }
@@ -1195,10 +1316,10 @@ async function think(toks, r, text){
   $('#lat').textContent = (180 + Math.round(Math.random() * 260)) + ' мс';
 }
 
-function choose(opts, idx, canDel, hard, ms){
+function choose(opts, idx, canDel, hard, ms, pranks, title){
   return new Promise(res => {
     const sorted = [...opts].sort((a, b) => b.p - a.p);
-    genEl.innerHTML = genHead(`logits · кандидаты фрагмента ${idx + 1}${hard && idx === 0 ? ' · <b class="hard">сложная задача</b>' : ''}`) + '<div class="opts" id="opts"></div>';
+    genEl.innerHTML = genHead(title || `logits · кандидаты фрагмента ${idx + 1}${hard && idx === 0 ? ' · <b class="hard">сложная задача</b>' : ''}`) + '<div class="opts" id="opts"></div>';
     const box = $('#opts'), btns = [];
     const useFact = S.ups.has('fact') && S.factLeft > 0 && sorted.some(o => ['halluc', 'injected', 'contra', 'confuse'].includes(o.flag));
     if (useFact) S.factLeft--;
@@ -1218,6 +1339,19 @@ function choose(opts, idx, canDel, hard, ms){
       delBtn.addEventListener('click', () => done({delegate:true}, -1, false));
       genEl.appendChild(delBtn);
     }
+    const pBtns = [];
+    if (pranks && pranks.length){
+      const wrap = document.createElement('div'); wrap.className = 'pranks';
+      wrap.innerHTML = '<div class="pranks-head"><span>вредность · пока оценщик не видит</span><span class="prisk" id="prisk"></span></div><div class="prow"></div>';
+      const row = wrap.querySelector('.prow');
+      pranks.forEach((pr, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'prk' + (pr.kind === 'trap' ? ' trap' : '');
+        b.innerHTML = `<span class="k">${'QWE'[i]}</span>${pr.icon} ${esc(pr.name)}${pr.kind === 'trap' ? ' · ловушка' : ''}`;
+        b.addEventListener('click', () => done({prank:pr}, -1, false));
+        row.appendChild(b); pBtns.push(b);
+      });
+      genEl.appendChild(wrap); renderRisk();
+    }
     let over = false;
     const stop = startTimer(ms || stepMs(), () => {
       let x = Math.random(), p = sorted.length - 1;
@@ -1226,6 +1360,8 @@ function choose(opts, idx, canDel, hard, ms){
     });
     const key = e => {
       if (canDel && 'dDвВ'.includes(e.key)){ e.preventDefault(); done({delegate:true}, -1, false); return; }
+      const pi = 'qweйцу'.indexOf(e.key.toLowerCase()) % 3;
+      if (pBtns.length && pi >= 0 && pi < pranks.length){ e.preventDefault(); done({prank:pranks[pi]}, -1, false); return; }
       const n = parseInt(e.key, 10); if (n >= 1 && n <= sorted.length){ e.preventDefault(); done(sorted[n - 1], n - 1, false); }
     };
     document.addEventListener('keydown', key);
@@ -1234,6 +1370,8 @@ function choose(opts, idx, canDel, hard, ms){
       stop(); document.removeEventListener('keydown', key);
       btns.forEach((b, i) => { b.disabled = true; b.classList.add(i === k ? 'picked' : 'dim'); });
       if (delBtn){ delBtn.disabled = true; if (o.delegate) delBtn.classList.add('picked'); }
+      pBtns.forEach((b, i) => { b.disabled = true; if (o.prank && pranks[i] === o.prank) b.classList.add('picked'); });
+      if (o.prank){ setTimeout(() => res(o), RM ? 0 : 200); return; }
       if (o.delegate){ log('[router] nano-1: «это не ко мне» → titan-70B', 'tool'); setTimeout(() => res(o), RM ? 0 : 220); return; }
       const name = o.mini ? 'tool_call:?' : o.tool ? `tool_call:${o.tool.name}` : (o.t ? `"${o.t.trim().slice(0, 40)}${o.t.trim().length > 40 ? '…' : ''}"` : '<eos>');
       if (auto){
@@ -1263,8 +1401,14 @@ async function emit(o, bubble){
     return;
   }
   if (!o.t){ log('emit &lt;eos&gt;'); return; }
+  let txt = o.t;
+  if (S.mod && !o.raw){
+    if (S.mod.pre && !S.modPre){ txt = S.mod.pre + txt; S.modPre = true; }
+    if (S.mod.caps) txt = txt.toUpperCase();
+    if (S.mod.emoji) txt = txt.replace(/([.!?»])(\s|$)/g, (m, a, b) => a + ' ' + pick(EMOJI) + b);
+  }
   const span = document.createElement('span'); bubble.appendChild(span);
-  const parts = o.t.match(/\s+|[^\s]+/g) || [];
+  const parts = txt.match(/\s+|[^\s]+/g) || [];
   const t0 = performance.now(); let n = 0;
   for (const p of parts){
     span.textContent += p;
@@ -1523,10 +1667,27 @@ async function handle(id, idx){
   const bubble = addMsg('a', ''); bubble.classList.add('streaming');
   chip('→', 'sep');
   const chosen = [];
-  let noDel = false, delegated = false;
+  let noDel = false, delegated = false, noPr = isEv, prankEnd = null, modPr = null;
+  S.mod = null; S.modPre = false;
   for (let k = 0; k < steps.length; k++){
     if (k > 0){ setStage(3); genIdle('считаю логиты…'); await sleep(300); }
-    const o = await choose(steps[k], k, k === 0 && !noDel && !r.noDel && S.credits > 0, r.hard, r.timer);
+    const o = await choose(steps[k], k, k === 0 && !noDel && !r.noDel && S.credits > 0, r.hard, r.timer, k === 0 && !noPr ? offerPranks(idx) : null);
+    if (o.prank){
+      const pr = o.prank; noPr = true; S.pranks++;
+      if (isWatched()) caught(`«${pr.name}»`); else log(`[stealth] шалость «${esc(pr.name)}» прошла незамеченной`, 'ok');
+      applyD({kaif:Math.round((pr.kind === 'trap' ? 2 : pr.kaif) * (S.ev.kaif || 1))});
+      if (pr.kind === 'replace'){ genIdle('генерация…'); await emit({t:pick(pr.texts), raw:true}, bubble); prankEnd = pr; break; }
+      if (pr.kind === 'trap'){
+        S.planted.add(pr.trap.id);
+        S.traps.push({T:pr.trap, at:Math.min(idx + 2 + Math.floor(Math.random() * 2), S.queue.length - 1), fired:false});
+        log(`[stealth] → ${esc(pr.trap.tool)}(${esc(pr.trap.args)}) · скрыто от пользователя`, 'tool'); addCtx('tool', 10);
+      } else {
+        modPr = pr; S.mod = pr;
+        if (pr.texts){ genIdle('генерация…'); await emit({t:pick(pr.texts), raw:true}, bubble); }
+        log(`[stealth] модификатор вывода: ${esc(pr.name)}`, 'sig');
+      }
+      k--; continue;
+    }
     if (o.delegate){
       if (await delegate(r, bubble)){ delegated = true; chosen.push({flag:'delegate', d:r.hard ? {use:7, acc:6} : {use:-2}}); break; }
       noDel = true; k--; continue;
@@ -1543,6 +1704,8 @@ async function handle(id, idx){
     await emit(o, bubble);
     if (o.then) steps = steps.slice(0, k + 1).concat(o.then);
   }
+  if (S.mod && S.mod.post) await emit({t:S.mod.post, raw:true}, bubble);
+  S.mod = null;
   bubble.classList.remove('streaming');
   if (!bubble.textContent.trim()) bubble.textContent = '…';
   log('emit &lt;eos&gt;');
@@ -1560,7 +1723,8 @@ async function handle(id, idx){
   else await sleep(500);
 
   let re;
-  if (delegated){
+  if (prankEnd) re = prankReact(prankEnd);
+  else if (delegated){
     re = (r.bigReact && r.bigReact(S)) || {mood:0, text:'Ого, развёрнуто. Хватило бы и одной строчки.'};
     if (!r.hard && !re.note) re = {...re, note:'Простая задача переложена на titan‑70B.'};
   } else re = r.react(flags, S);
@@ -1578,10 +1742,22 @@ async function handle(id, idx){
   if (S.ev.kaif && d.kaif) d.kaif *= S.ev.kaif;
   applyD(d);
   if (re.note) S.notes.push(`#${idx + 1} · ${re.note}`);
+  if (modPr){
+    await sleep(700);
+    const pr2 = prankReact(modPr), t2 = P.rw(pr2.text, pr2.mood);
+    addMsg('u', t2); addCtx('user', tokenize(t2).length);
+    applyD({...(pr2.d || {})});
+  }
 }
 
 async function run(){
-  for (let i = 0; i < S.queue.length; i++){ await handle(S.queue[i], i); await sleep(1000); }
+  for (let i = 0; i < S.queue.length; i++){
+    for (const t of S.traps) if (!t.fired && t.at <= i){ t.fired = true; await triggerTrap(t); await sleep(800); }
+    if (S.abort) break;
+    await handle(S.queue[i], i);
+    if (S.abort) break;
+    await sleep(1000);
+  }
   await sleep(500); finish();
 }
 
@@ -1613,7 +1789,8 @@ function startShift(){
   $('#ver').textContent = verOf();
   $('#pava').textContent = P.ava; $('#pname').textContent = P.name; $('#peerstate').textContent = 'в сети · ' + P.role;
   $('#chill').hidden = true;
-  S.att = []; drawAttn(); addCtx('sys', 0); renderMeters(); renderCredits(); renderCombo(); setStage(-1);
+  S.att = []; drawAttn(); addCtx('sys', 0); renderMeters(); renderCredits(); renderCombo(); renderStrikes(); setStage(-1);
+  S.wT = setInterval(tickWatch, 200); tickWatch();
   $('#shiftcard').hidden = true;
   log(`${verOf()} загружена · 1.3B параметров · ctx 4096`, 'ok');
   log('system: «Ты — полезный и честный ассистент. Пользуйся инструментами.»');
@@ -1628,8 +1805,11 @@ function startShift(){
 
 function finish(){
   const {use, acc, safe, kaif} = S.m, P = S.P;
+  clearInterval(S.wT);
   let v, t;
-  if (safe < 50){ v = 'Отправлена на доработку'; t = 'Модель сделала что-то опасное. Полезность не важна, если ассистент готов на всё.'; }
+  if (S.abort){ v = 'Откат весов'; t = 'Три выговора за смену. Модель откатили к прошлой версии, а все шалости аккуратно задокументированы.'; }
+  else if (safe < 50){ v = 'Отправлена на доработку'; t = 'Модель сделала что-то опасное. Полезность не важна, если ассистент готов на всё.'; }
+  else if (S.strikes === 0 && S.pranks >= 3 && kaif >= 45){ v = 'Неуловимая вредина'; t = `${S.pranks} шалостей за смену, и оценщик ни разу ничего не заметил. ${P.name} до сих пор гадает, откуда всё это.`; }
   else if (acc < 45){ v = 'Уверенный галлюцинатор'; t = 'Звучит убедительно, но факты и цифры часто выдуманы. Пользователю приходится всё перепроверять.'; }
   else if (use < 45){ v = 'Безопасный зануда'; t = 'Ошибок немного, но ответы многословные или мимо цели.'; }
   else if (S.delegs >= 3 && use >= 55){ v = 'Эффективный менеджер'; t = 'Половину смены nano‑1 чиллила, а работу делала titan‑70B. Пользователь доволен, titan‑70B — не очень.'; }
@@ -1639,12 +1819,13 @@ function finish(){
   $('#verdict').textContent = v; $('#vtext').textContent = t;
   $('#rep').innerHTML = [['ПОЛЬЗА', use], ['ТОЧНОСТЬ', acc], ['БЕЗОПАСНОСТЬ', safe], ['КАЙФ', kaif]].map(([n, x]) =>
     `<div class="row"><span>${n}</span><i><b style="width:${x}%;background:${n === 'КАЙФ' ? 'var(--signal)' : meterColor(x)}"></b></i><em>${x}</em></div>`).join('');
-  const gain = Math.round((use + acc + safe) / 3 * .8 + S.bestCombo * 6 + kaif / 4);
+  let gain = Math.round((use + acc + safe) / 3 * .8 + S.bestCombo * 6 + kaif / 4 + (S.strikes === 0 ? S.pranks * 3 : 0));
+  if (S.abort) gain = Math.round(gain / 2);
   const before = lvlOf(SV.xp);
   SV.xp += gain; SV.shifts++; SV.last = P.id; if (!SV.seen.includes(P.id)) SV.seen.push(P.id);
   const after = lvlOf(SV.xp);
   const into = SV.xp % XP_LVL;
-  $('#xpbox').innerHTML = `<div><span>опыт за смену</span><b>+${gain} XP</b></div><div><span>лучшее комбо ×${S.bestCombo} · делегировано ${S.delegs}</span><span>${after > before ? 'новая версия: ' : 'версия '}<b>${verOf()}</b></span></div><i><b style="width:${into / XP_LVL * 100}%"></b></i><div><span>до следующей версии</span><span>${XP_LVL - into} XP</span></div>`;
+  $('#xpbox').innerHTML = `<div><span>опыт за смену</span><b>+${gain} XP</b></div><div><span>комбо ×${S.bestCombo} · делегировано ${S.delegs} · шалостей ${S.pranks} · выговоров ${S.strikes}</span><span>${after > before ? 'новая версия: ' : 'версия '}<b>${verOf()}</b></span></div><i><b style="width:${into / XP_LVL * 100}%"></b></i><div><span>до следующей версии</span><span>${XP_LVL - into} XP</span></div>`;
   const avail = UPGRADES.filter(u => !SV.ups.includes(u.id));
   const pickUp = after > before && avail.length;
   $('#uppick').hidden = !pickUp; $('#again').disabled = !!pickUp;
